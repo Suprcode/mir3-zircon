@@ -5,6 +5,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -25,6 +26,14 @@ namespace LibraryEditor
         private BinaryReader _reader;
         private FileStream _stream;
 
+        internal enum LibMode
+        {
+            Normal,
+            ApocV2,
+        }
+
+        static internal LibMode LibDetected = LibMode.Normal;
+
         public MLibraryV2(string filename)
         {
             FileName = filename;
@@ -43,23 +52,66 @@ namespace LibraryEditor
             _stream = new FileStream(FileName, FileMode.Open, FileAccess.ReadWrite);
             _reader = new BinaryReader(_stream);
             CurrentVersion = _reader.ReadInt32();
-            if (CurrentVersion != LibVersion)
+
+            if (Path.GetExtension(FileName).ToLower() == ".lib")
             {
-                MessageBox.Show("Wrong version, expecting lib version: " + LibVersion.ToString() + " found version: " + CurrentVersion.ToString() + ".", "Failed to open", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
-                return;
+                if (CurrentVersion != LibVersion)
+                {
+                    MessageBox.Show("Wrong version, expecting lib version: " + LibVersion.ToString() + " found version: " + CurrentVersion.ToString() + ".", "Failed to open", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
+                    return;
+                }
+                Count = _reader.ReadInt32();
+                Images = new List<MImage>();
+                IndexList = new List<int>();
+
+                for (int i = 0; i < Count; i++)
+                    IndexList.Add(_reader.ReadInt32());
+
+                for (int i = 0; i < Count; i++)
+                    Images.Add(null);
+
+                for (int i = 0; i < Count; i++)
+                    CheckImage(i);
             }
-            Count = _reader.ReadInt32();
-            Images = new List<MImage>();
-            IndexList = new List<int>();
+            else if (Path.GetExtension(FileName).ToLower() == ".alib")
+            {
+                LibDetected = LibMode.ApocV2;
 
-            for (int i = 0; i < Count; i++)
-                IndexList.Add(_reader.ReadInt32());
+                if (CurrentVersion < LibVersion)
+                {
+                    MessageBox.Show("Wrong version, expecting lib version: " + LibVersion.ToString() + " found version: " + CurrentVersion.ToString() + ".", "Failed to open", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
+                    return;
+                }
 
-            for (int i = 0; i < Count; i++)
-                Images.Add(null);
+                Count = _reader.ReadInt32();
 
-            for (int i = 0; i < Count; i++)
-                CheckImage(i);
+                int LibSeekOffset = 0;
+
+                if (CurrentVersion >= 3)
+                    LibSeekOffset = this._reader.ReadInt32();
+
+                Images = new List<MImage>();
+                IndexList = new List<int>();
+
+                for (int i = 0; i < Count; i++)
+                    IndexList.Add(_reader.ReadInt32());
+
+                for (int i = 0; i < Count; i++)
+                    Images.Add(null);
+
+                for (int i = 0; i < Count; i++)
+                    CheckImage(i);
+
+                if (CurrentVersion < 3)
+                    return;
+
+                this._reader.BaseStream.Seek((long)LibSeekOffset, SeekOrigin.Begin);
+                int DummyOffsetCheck = this._reader.ReadInt32();
+                if (DummyOffsetCheck <= 0)
+                    return;
+
+            }
+
         }
 
         public void Close()
@@ -138,7 +190,7 @@ namespace LibraryEditor
             }
             finally
             {
-                library.Save(fileName);
+                library.Save(fileName, null, false, false);
             }
 
             // Operation finished.
@@ -148,31 +200,7 @@ namespace LibraryEditor
             //            System.Windows.Forms.MessageBoxIcon.Information,
             //                System.Windows.Forms.MessageBoxDefaultButton.Button1);
         }
-        public void MergeToMLibrary(Mir3Library lib, int newImages)
-        {
-            int offset = lib.Images.Count;
-            for (int i = 0; i < Images.Count; i++)
-                lib.Images.Add(null);
 
-            ParallelOptions options = new ParallelOptions { MaxDegreeOfParallelism = 8 };
-
-            try
-            {
-                Parallel.For(0, Images.Count, options, i =>
-                {
-                    MImage image = Images[i];
-                    if (image.HasMask)
-                        lib.Images[i+offset] = new Mir3Library.Mir3Image(image.Image, null, image.MaskImage) { OffSetX = image.X, OffSetY = image.Y, ShadowOffSetX = image.ShadowX, ShadowOffSetY = image.ShadowY };
-                    else
-                        lib.Images[i+offset] = new Mir3Library.Mir3Image(image.Image) { OffSetX = image.X, OffSetY = image.Y, ShadowOffSetX = image.ShadowX, ShadowOffSetY = image.ShadowY };
-                });
-                lib.AddBlanks(newImages);
-            }
-            catch (System.Exception)
-            {
-                throw;
-            }
-        }
         private void CheckImage(int index)
         {
             if (!_initialized)
@@ -303,12 +331,6 @@ namespace LibraryEditor
 
                 Image.UnlockBits(data);
 
-                //if (Image.Width > 0 && Image.Height > 0)
-                //{
-                //    Guid id = Guid.NewGuid();
-                //    Image.Save(id + ".bmp", ImageFormat.Bmp);
-                //}
-
                 dest = null;
 
                 if (HasMask)
@@ -382,27 +404,52 @@ namespace LibraryEditor
 
             static byte[] Decompress(byte[] gzip)
             {
-                // Create a GZIP stream with decompression mode.
-                // ... Then create a buffer and write into while reading from the GZIP stream.
-                using (GZipStream stream = new GZipStream(new MemoryStream(gzip), CompressionMode.Decompress))
+
+                if (LibDetected == LibMode.Normal)
                 {
-                    const int size = 4096;
-                    byte[] buffer = new byte[size];
-                    using (MemoryStream memory = new MemoryStream())
+                    // Create a GZIP stream with decompression mode.
+                    // ... Then create a buffer and write into while reading from the GZIP stream.
+                    using (GZipStream stream = new GZipStream(new MemoryStream(gzip), CompressionMode.Decompress))
                     {
-                        int count = 0;
-                        do
+                        const int size = 4096;
+                        byte[] buffer = new byte[size];
+                        using (MemoryStream memory = new MemoryStream())
                         {
-                            count = stream.Read(buffer, 0, size);
-                            if (count > 0)
+                            int count = 0;
+                            do
                             {
-                                memory.Write(buffer, 0, count);
+                                count = stream.Read(buffer, 0, size);
+                                if (count > 0)
+                                {
+                                    memory.Write(buffer, 0, count);
+                                }
                             }
+                            while (count > 0);
+                            return memory.ToArray();
                         }
-                        while (count > 0);
-                        return memory.ToArray();
                     }
                 }
+                else if (LibDetected == LibMode.ApocV2)
+                {
+                    using (GZipStream gzipStream = new GZipStream((Stream)new MemoryStream(gzip), CompressionMode.Decompress))
+                    {
+                        byte[] buffer = new byte[4096];
+                        using (MemoryStream memoryStream = new MemoryStream())
+                        {
+                            int count;
+                            do
+                            {
+                                count = gzipStream.Read(buffer, 0, 4096);
+                                if (count > 0)
+                                    memoryStream.Write(buffer, 0, count);
+                            }
+                            while (count > 0);
+                            return ((IEnumerable<byte>)memoryStream.ToArray()).Skip<byte>(10).ToArray<byte>();
+                        }
+                    }
+                }
+                else return null;
+
             }
         }
     }

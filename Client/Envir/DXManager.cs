@@ -105,6 +105,8 @@ namespace Client.Envir
 
         public static Texture PoisonTexture;
 
+        private static bool isDrawingRotated = false;
+
         static DXManager()
         {
             Graphics = Graphics.FromHwnd(IntPtr.Zero);
@@ -373,9 +375,9 @@ namespace Client.Envir
             CurrentSurface = surface;
             Device.SetRenderTarget(0, surface);
         }
-        public static void SetOpacity(float opacity)
+        public static void SetOpacity(float opacity, bool force = false)
         {
-            if (Opacity == opacity)
+            if (Opacity == opacity && !force)
                 return;
 
             Sprite.Flush();
@@ -456,6 +458,51 @@ namespace Client.Envir
             
             Device.SetRenderTarget(0, CurrentSurface);
         }
+
+        public static void SetSpecialBlend(bool value, float rate = 0.92F, bool force = false)
+        {
+            if (value == Blending && !force) return;
+
+            Blending = value;
+            BlendRate = 1F;
+            //Sprite.Flush();
+
+            Sprite.End();
+            if (Blending)
+            {
+
+                Sprite.Begin(SpriteFlags.AlphaBlend);
+                Device.SetRenderState(RenderState.AlphaBlendEnable, true);
+                Device.SetRenderState(RenderState.AlphaTestEnable, true);
+
+                if (rate < 1.0f)
+                {
+
+                    Device.SetRenderState(RenderState.SourceBlend, Blend.BlendFactor);
+                    Device.SetRenderState(RenderState.DestinationBlend, Blend.InverseBlendFactor);
+                    Device.SetRenderState(RenderState.SourceBlendAlpha, Blend.SourceAlpha);
+                    Device.SetRenderState(RenderState.BlendFactor, Color.FromArgb((byte)(2 * rate), (byte)(255 * rate), (byte)(255 * rate), (byte)(255 * rate)).ToArgb());
+
+                }
+                else
+                {
+
+                    Device.SetRenderState(RenderState.SourceBlend, Blend.BlendFactor);
+                    Device.SetRenderState(RenderState.DestinationBlend, Blend.InverseBlendFactor);
+                    Device.SetRenderState(RenderState.SourceBlendAlpha, Blend.SourceAlpha);
+                    Device.SetRenderState(RenderState.BlendFactor, Color.FromArgb(1, 100, 100, 100).ToArgb());
+
+                }
+            }
+            else
+            {
+                Sprite.Begin(SpriteFlags.AlphaBlend);
+                SetOpacity(1f, true);
+            }
+
+            Device.SetRenderTarget(0, CurrentSurface);
+        }
+
         public static void SetColour(int colour)
         {
             Sprite.Flush();
@@ -473,6 +520,22 @@ namespace Client.Envir
             }
 
             Sprite.Flush();
+        }
+
+        //raw draws
+        public static void Draw(Texture texture, Color4 color)
+        {
+            DXManager.Sprite.Draw(texture, color);
+        }
+
+        public static void Draw(Texture texture, Vector3 center, Vector3 position, Color4 color)
+        {
+            DXManager.Sprite.Draw(texture, center, !isDrawingRotated ? position : Vector3.Zero, color);
+        }
+
+        public static void Draw(Texture texture, Rectangle rectangle, Vector3 center, Vector3 position, Color4 color)
+        {
+            DXManager.Sprite.Draw(texture, rectangle, center, !isDrawingRotated ? position : Vector3.Zero, color);
         }
 
         public static void ResetDevice()

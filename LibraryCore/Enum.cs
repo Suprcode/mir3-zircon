@@ -1526,6 +1526,14 @@ namespace Library
         Cancel
     }
 
+    public enum MapType : byte
+    {
+        None,
+        Other, //Usually Mir2
+        Mir3,
+        Woool
+    }
+
     #region Packet Enums
 
     public enum NewAccountResult : byte

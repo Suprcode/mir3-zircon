@@ -351,7 +351,7 @@ namespace Client.Envir
                     WindowSettings = Session.GetCollection<WindowSetting>();
                     CastleInfoList = Session.GetCollection<CastleInfo>();
 
-                    Globals.GoldInfo = Globals.CurrencyInfoList.Binding.First(x => x.Type == CurrencyType.Gold).DropItem;
+                    Globals.GoldInfo = Globals.CurrencyInfoList.Binding.Count > 0 ? Globals.CurrencyInfoList.Binding.First(x => x.Type == CurrencyType.Gold).DropItem : null;
 
                     CheckKeyBinds();
 

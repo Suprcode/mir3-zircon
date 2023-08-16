@@ -403,6 +403,9 @@ namespace Library
             [RefineQuality.Careful] = TimeSpan.FromHours(6),
             [RefineQuality.Precise] = TimeSpan.FromDays(1),
         };
+
+        public const int WooolMiddleFileStartIndex = 605, WooolBackFileStartIndex = 600;
+
     }
 
     public sealed class SelectInfo

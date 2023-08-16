@@ -1,4 +1,5 @@
-﻿using ManagedSquish;
+﻿using Library_Editor;
+using ManagedSquish;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -160,7 +161,7 @@ namespace LibraryEditor
             }
             finally
             {
-                library.Save(fileName);
+                library.Save(fileName, null, false, false);
             }
 
             // Operation finished.
@@ -169,31 +170,6 @@ namespace LibraryEditor
             //        System.Windows.Forms.MessageBoxButtons.OK,
             //            System.Windows.Forms.MessageBoxIcon.Information,
             //                System.Windows.Forms.MessageBoxDefaultButton.Button1);
-        }
-        public void MergeToMLibrary(Mir3Library lib, int newImages)
-        {            
-            int offset = lib.Images.Count;
-            lib.Images.AddRange(Enumerable.Repeat(new Mir3Library.Mir3Image(), Images.Count));
-            //library.Save();
-
-            ParallelOptions options = new ParallelOptions { MaxDegreeOfParallelism = 8 };
-
-            try
-            {
-                Parallel.For(0, Images.Count, options, i =>
-                {
-                    MImage image = Images[i];
-                    if (image.HasMask)
-                        lib.Images[i+offset] = new Mir3Library.Mir3Image(image.Image, null, image.MaskImage) { OffSetX = image.X, OffSetY = image.Y, ShadowOffSetX = image.ShadowX, ShadowOffSetY = image.ShadowY };
-                    else
-                        lib.Images[i+ offset] = new Mir3Library.Mir3Image(image.Image) { OffSetX = image.X, OffSetY = image.Y, ShadowOffSetX = image.ShadowX, ShadowOffSetY = image.ShadowY };
-                });
-                lib.AddBlanks(newImages);
-            }
-            catch (System.Exception)
-            {
-                throw;
-            }
         }
 
         public sealed class MImage
@@ -260,40 +236,6 @@ namespace LibraryEditor
                 return input;
             }
 
-            private unsafe byte[] ConvertBitmapToArray(Bitmap input)
-            {
-                byte[] output;
-
-                BitmapData data = input.LockBits(new Rectangle(0, 0, input.Width, input.Height), ImageLockMode.ReadOnly,
-                                                 PixelFormat.Format32bppArgb);
-
-                byte[] pixels = new byte[input.Width * input.Height * 4];
-
-                Marshal.Copy(data.Scan0, pixels, 0, pixels.Length);
-                input.UnlockBits(data);
-
-                for (int i = 0; i < pixels.Length; i += 4)
-                {
-                    //Reverse Red/Blue
-                    byte b = pixels[i];
-                    pixels[i] = pixels[i + 2];
-                    pixels[i + 2] = b;
-
-                    if (pixels[i] == 0 && pixels[i + 1] == 0 && pixels[i + 2] == 0)
-                        pixels[i + 3] = 0; //Make Transparent
-                }
-
-                int count = Squish.GetStorageRequirements(input.Width, input.Height, SquishFlags.Dxt1);
-
-                output = new byte[count];
-                fixed (byte* dest = output)
-                fixed (byte* source = pixels)
-                {
-                    Squish.CompressImage((IntPtr)source, input.Width, input.Height, (IntPtr)dest, SquishFlags.Dxt1);
-                }
-                return output;
-            }
-
             public void Save(BinaryWriter writer)
             {
                 writer.Write(Width);
@@ -303,8 +245,10 @@ namespace LibraryEditor
                 writer.Write(ShadowX);
                 writer.Write(ShadowY);
                 writer.Write(HasMask ? (byte)(Shadow | 0x80) : (byte)Shadow);
+
                 writer.Write(FBytes.Length);
                 writer.Write(FBytes);
+
                 if (HasMask)
                 {
                     writer.Write(MaskWidth);

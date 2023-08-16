@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Library Editor")]
+[assembly: AssemblyTitle("LibraryEditor")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Library Editor")]
+[assembly: AssemblyProduct("LibraryEditor")]
 [assembly: AssemblyCopyright("")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -19,7 +19,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("42e78300-45fd-4856-bc07-c76c4d341123")]
+[assembly: Guid("75F4770F-DCC3-425D-B2B3-6250EA09026B")]
 
 // Version information for an assembly consists of the following four values:
 //
@@ -31,5 +31,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("2017.6.23.1821")]
-[assembly: AssemblyFileVersion("2017.6.23.1821")]
+[assembly: AssemblyVersion("2019.6.23.1821")]
+[assembly: AssemblyFileVersion("2019.6.23.1821")]

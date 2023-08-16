@@ -75,10 +75,19 @@ namespace Client.Scenes.Views
             using (FileStream stream = File.OpenRead(Config.MapPath + fileName + ".map"))
             using (BinaryReader reader = new BinaryReader(stream))
             {
-                stream.Seek(22, SeekOrigin.Begin);
-                
-                return new Size(reader.ReadInt16(), reader.ReadInt16());
+                var data = reader.ReadBytes(100);
+
+                var mapInfo = LibraryCore.Maps.MapFormat.FindType(data);
+
+                return mapInfo.mapSize;
+
+                #region old code
+                //stream.Seek(22, SeekOrigin.Begin);
+
+                //return new Size(reader.ReadInt16(), reader.ReadInt16());
+                #endregion
             }
+
         }
 
         #endregion

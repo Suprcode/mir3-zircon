@@ -14,7 +14,7 @@ namespace Client.Envir
         public static readonly Size IntroSceneSize = new Size(1024, 768);
 
         public const string DefaultIPAddress = "127.0.0.1";
-        public const int DefaultPort = 7100;
+        public const int DefaultPort = 7000;
 
         [ConfigSection("Network")]
         public static bool UseNetworkConfig { get; set; } = false;
@@ -28,8 +28,8 @@ namespace Client.Envir
 
 
         [ConfigSection("Graphics")]
-        public static bool FullScreen { get; set; } = true;
-        public static bool VSync { get; set; }
+        public static bool FullScreen { get; set; } = false;
+        public static bool VSync { get; set; } = true;
         public static bool LimitFPS { get; set; }
         public static Size GameSize { get; set; } = IntroSceneSize;
         public static TimeSpan CacheDuration { get; set; } = TimeSpan.FromMinutes(30);

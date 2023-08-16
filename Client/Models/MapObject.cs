@@ -310,8 +310,8 @@ namespace Client.Models
 
         }
 
-        public static int CellWidth => MapControl.CellWidth;
-        public static int CellHeight => MapControl.CellHeight;
+        public static int CellWidth => GameScene.Game.MapControl.CellWidth;
+        public static int CellHeight => GameScene.Game.MapControl.CellHeight;
         public static int OffSetX => MapControl.OffSetX;
         public static int OffSetY => MapControl.OffSetY;
 
@@ -343,8 +343,8 @@ namespace Client.Models
             DrawX = CurrentLocation.X - User.CurrentLocation.X + MapControl.OffSetX;
             DrawY = CurrentLocation.Y - User.CurrentLocation.Y + MapControl.OffSetY;
 
-            DrawX *= MapControl.CellWidth;
-            DrawY *= MapControl.CellHeight;
+            DrawX *= GameScene.Game.MapControl.CellWidth;
+            DrawY *= GameScene.Game.MapControl.CellHeight;
 
             if (this != User)
             {

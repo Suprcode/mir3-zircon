@@ -21,19 +21,26 @@ namespace Library
         
         public static void Load(Assembly assembly)
         {
-            Type[] types = assembly.GetTypes();
-            
-            foreach (Type type in types)
+            try
             {
-                ConfigPath config = type.GetCustomAttribute<ConfigPath>();
+                Type[] types = assembly.GetTypes();
+            
+                foreach (Type type in types)
+                {
+                    ConfigPath config = type.GetCustomAttribute<ConfigPath>();
 
-                if (config == null) continue;
+                    if (config == null) continue;
 
-                object ob = null;
-                if (!type.IsAbstract || !type.IsSealed)
-                    ConfigObjects[type] = ob = Activator.CreateInstance(type);
+                    object ob = null;
+                    if (!type.IsAbstract || !type.IsSealed)
+                        ConfigObjects[type] = ob = Activator.CreateInstance(type);
 
-                ReadConfig(type, config.Path, ob);
+                    ReadConfig(type, config.Path, ob);
+                }
+
+            } catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
             }
         }
         public static void Save(Assembly assembly)

@@ -1,4 +1,5 @@
-﻿using ManagedSquish;
+﻿using Library_Editor;
+using ManagedSquish;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -298,14 +299,34 @@ namespace LibraryEditor
                         pixels[i + 3] = 0; //Make Transparent
                 }
 
-                int count = Squish.GetStorageRequirements(image.Width, image.Height, SquishFlags.Dxt1);
+                //int count = Squish.GetStorageRequirements(image.Width, image.Height, SquishFlags.Dxt1);
 
-                FBytes = new byte[count];
-                fixed (byte* dest = FBytes)
-                fixed (byte* source = pixels)
+                //FBytes = new byte[count];
+                //fixed (byte* dest = FBytes)
+                //fixed (byte* source = pixels)
+                //{
+                //    Squish.CompressImage((IntPtr)source, image.Width, image.Height, (IntPtr)dest, SquishFlags.Dxt1);
+                //}
+
+                //FBytes = null;
+
+                switch (LMain.LibMode)
                 {
-                    Squish.CompressImage((IntPtr)source, image.Width, image.Height, (IntPtr)dest, SquishFlags.Dxt1);
+                    case LibraryEditor.Mir3Library.libMode.Normal:
+
+                        int count = Squish.GetStorageRequirements(w, h, SquishFlags.Dxt1);
+
+                        FBytes = new byte[count];
+                        fixed (byte* dest = FBytes)
+
+                        fixed (byte* source = pixels)
+                        {
+                            Squish.CompressImage((IntPtr)source, w, h, (IntPtr)dest, SquishFlags.Dxt1);
+                        }
+
+                        break;
                 }
+
             }
 
             public void Save(BinaryWriter writer)

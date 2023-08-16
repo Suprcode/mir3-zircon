@@ -1108,8 +1108,18 @@ namespace Client.Models
 
             Matrix m = Matrix.Scaling(1F, 0.5f, 0);
 
-            m.M21 = -0.50F;
-            DXManager.Sprite.Transform = m * Matrix.Translation(DrawX + image.ShadowOffSetX - w + (image.Height) / 2 + h / 2, DrawY + image.ShadowOffSetY - h / 2, 0);
+            if (GameScene.Game.MapControl.MapFormat.mapType == MapType.Woool)
+            {
+                //WoOoL style
+                m.M21 = 0.50F;
+                DXManager.Sprite.Transform = m * Matrix.Translation(DrawX + image.ShadowOffSetX - w - (image.Height) / 2 - h / 2, DrawY + image.ShadowOffSetY - h / 2, 0);
+            } else
+            {
+                //mir2 & mir3 style
+                m.M21 = -0.50F;
+                DXManager.Sprite.Transform = m * Matrix.Translation(DrawX + image.ShadowOffSetX - w + (image.Height) / 2 + h / 2, DrawY + image.ShadowOffSetY - h / 2, 0);
+
+            }
 
             DXManager.Device.SetSamplerState(0, SamplerState.MinFilter, TextureFilter.None);
 

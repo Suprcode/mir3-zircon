@@ -59,9 +59,297 @@ namespace Server.Models
                 return;
             }
 
-
             byte[] fileBytes = File.ReadAllBytes(fileName);
 
+            switch (LibraryCore.Maps.MapFormat.FindType(fileBytes).mapCodeType)
+            {
+                case 0://raw
+                    LoadMapCellsv0(fileBytes);
+                    break;
+                case 1://Map 2010
+                    LoadMapCellsv1(fileBytes);
+                    break;
+                case 2://Shanda 2012 old (wemades)
+                    LoadMapCellsv2(fileBytes);
+                    break;
+                case 3://shanda 2012 old
+                    LoadMapCellsv3(fileBytes);
+                    break;
+                case 4://Mir2 AntiHack
+                    LoadMapCellsv4(fileBytes);
+                    break;
+                case 5://Mir3
+                    LoadMapCellsv5(fileBytes);
+                    break;
+                case 6://Shanda Mir3
+                    LoadMapCellsv6(fileBytes);
+                    break;
+                case 7://3/4 heroes map
+                    LoadMapCellsv7(fileBytes);
+                    break;
+                case 8://Shanda Mir3 - NEW
+                    LoadMapCellsv8(fileBytes);
+                    break;
+                case 100://C# custom
+                    LoadMapCellsV100(fileBytes);
+                    break;
+                case 150://C# Woool Map custom format
+                    LoadMapCellsV150(fileBytes, fileName);
+                    break;
+                default:
+                    break;
+            }
+
+            #region old code
+            //old code - only mir3
+            //Width = fileBytes[23] << 8 | fileBytes[22];
+            //Height = fileBytes[25] << 8 | fileBytes[24];
+
+            //Cells = new Cell[Width, Height];
+
+            //int offSet = 28 + Width * Height / 4 * 3;
+
+            //for (int x = 0; x < Width; x++)
+            //    for (int y = 0; y < Height; y++)
+            //    {
+            //        byte flag = fileBytes[offSet + (x * Height + y) * 14];
+
+            //        if ((flag & 0x02) != 2 || (flag & 0x01) != 1) continue;
+
+            //        ValidCells.Add(Cells[x, y] = new Cell(new Point(x, y)) { Map = this });
+            //    }
+            #endregion
+
+            if (Width > 1500 || Height > 1500)
+            {
+                return;
+            }
+
+            OrderedObjects = new HashSet<MapObject>[Width];
+            for (int i = 0; i < OrderedObjects.Length; i++)
+                OrderedObjects[i] = new HashSet<MapObject>();
+        }
+
+        #region Maps Functions
+
+        private void LoadMapCellsv0(byte[] fileBytes)
+        {
+
+            //raw
+            int offSet = 0;
+            Width = BitConverter.ToInt16(fileBytes, offSet);
+            offSet += 2;
+            Height = BitConverter.ToInt16(fileBytes, offSet);
+
+            if (Width > 1500 || Height > 1500) return;
+
+            Cells = new Cell[Width, Height];
+
+            offSet = 52;
+
+            for (int x = 0; x < Width; x++)
+            {
+                for (int y = 0; y < Height; y++)
+                {
+                    byte flag = 0;
+
+                    if ((BitConverter.ToInt16(fileBytes, offSet) & 0x8000) != 0)
+                        flag = 2; //Can Fire Over.
+
+                    if ((BitConverter.ToInt16(fileBytes, offSet + 2) & 0x8000) != 0)
+                        flag = 1; //Can't Fire Over.
+
+                    if ((BitConverter.ToInt16(fileBytes, offSet + 4) & 0x8000) != 0)
+                        flag = 2; //No Floor Tile.
+
+                    offSet += 12;
+
+                    if (flag == 1 || flag == 2)
+                    {
+                        continue;
+                    }
+
+                    ValidCells.Add(Cells[x, y] = new Cell(new Point(x, y)) { Map = this });
+
+                }
+
+            }
+
+        }
+
+        private void LoadMapCellsv1(byte[] fileBytes)
+        {
+            //Map 2010
+            int offSet = 21;
+
+            int w = BitConverter.ToInt16(fileBytes, offSet);
+            offSet += 2;
+            int xor = BitConverter.ToInt16(fileBytes, offSet);
+            offSet += 2;
+            int h = BitConverter.ToInt16(fileBytes, offSet);
+            Width = w ^ xor;
+            Height = h ^ xor;
+
+            Cells = new Cell[Width, Height];
+
+            offSet = 54;
+
+            for (int x = 0; x < Width; x++)
+            {
+                for (int y = 0; y < Height; y++)
+                {
+                    byte flag = 0;
+
+                    if (((BitConverter.ToInt32(fileBytes, offSet) ^ 0xAA38AA38) & 0x20000000) != 0)
+                        flag = 2; //Can Fire Over.
+
+                    if (((BitConverter.ToInt16(fileBytes, offSet + 6) ^ xor) & 0x8000) != 0)
+                        flag = 1; //No Floor Tile.
+
+                    offSet += 15;
+
+                    if (flag == 1 || flag == 2)
+                    {
+                        continue;
+                    }
+
+                    ValidCells.Add(Cells[x, y] = new Cell(new Point(x, y)) { Map = this });
+
+                }
+
+            }
+        }
+
+        private void LoadMapCellsv2(byte[] fileBytes)
+        {
+            //Shanda 2012 old (wemades)
+            int offSet = 0;
+            Width = BitConverter.ToInt16(fileBytes, offSet);
+            offSet += 2;
+            Height = BitConverter.ToInt16(fileBytes, offSet);
+
+            Cells = new Cell[Width, Height];
+
+            offSet = 52;
+
+            for (int x = 0; x < Width; x++)
+            {
+                for (int y = 0; y < Height; y++)
+                {
+                    byte flag = 0;
+
+                    if ((BitConverter.ToInt16(fileBytes, offSet) & 0x8000) != 0)
+                        flag = 2; //Can Fire Over.
+
+                    if ((BitConverter.ToInt16(fileBytes, offSet + 2) & 0x8000) != 0)
+                        flag = 1; //Can't Fire Over.
+
+                    if ((BitConverter.ToInt16(fileBytes, offSet + 4) & 0x8000) != 0)
+                        flag = 2; //No Floor Tile.
+
+                    offSet += 14;
+
+                    if (flag == 1 || flag == 2)
+                    {
+                        continue;
+                    }
+
+                    ValidCells.Add(Cells[x, y] = new Cell(new Point(x, y)) { Map = this });
+
+                }
+
+            }
+        }
+
+        private void LoadMapCellsv3(byte[] fileBytes)
+        {
+            //Shanda 2012 old
+            int offSet = 0;
+            Width = BitConverter.ToInt16(fileBytes, offSet);
+            offSet += 2;
+            Height = BitConverter.ToInt16(fileBytes, offSet);
+
+            Cells = new Cell[Width, Height];
+
+            offSet = 52;
+
+            for (int x = 0; x < Width; x++)
+            {
+                for (int y = 0; y < Height; y++)
+                {
+                    byte flag = 0;
+
+                    if ((BitConverter.ToInt16(fileBytes, offSet) & 0x8000) != 0)
+                        flag = 2; //Can Fire Over.
+
+                    if ((BitConverter.ToInt16(fileBytes, offSet + 2) & 0x8000) != 0)
+                        flag = 1; //Can't Fire Over.
+
+                    if ((BitConverter.ToInt16(fileBytes, offSet + 4) & 0x8000) != 0)
+                        flag = 2; //No Floor Tile.
+
+                    offSet += 36;
+
+                    if (flag == 1 || flag == 2)
+                    {
+                        continue;
+                    }
+
+                    ValidCells.Add(Cells[x, y] = new Cell(new Point(x, y)) { Map = this });
+
+                }
+
+            }
+        }
+
+        private void LoadMapCellsv4(byte[] fileBytes)
+        {
+            //Mir2 AntiHack
+
+            int offSet = 31;
+            int w = BitConverter.ToInt16(fileBytes, offSet);
+            offSet += 2;
+            int xor = BitConverter.ToInt16(fileBytes, offSet);
+            offSet += 2;
+            int h = BitConverter.ToInt16(fileBytes, offSet);
+            Width = w ^ xor;
+            Height = h ^ xor;
+
+            Cells = new Cell[Width, Height];
+
+            offSet = 64;
+
+            for (int x = 0; x < Width; x++)
+            {
+                for (int y = 0; y < Height; y++)
+                {
+                    byte flag = 0;
+
+                    if ((BitConverter.ToInt16(fileBytes, offSet) & 0x8000) != 0)
+                        flag = 2; //Can Fire Over.
+
+                    if ((BitConverter.ToInt16(fileBytes, offSet + 2) & 0x8000) != 0)
+                        flag = 1; //Can't Fire Over.
+
+                    offSet += 12;
+
+                    if (flag == 1 || flag == 2)
+                    {
+                        continue;
+                    }
+
+                    ValidCells.Add(Cells[x, y] = new Cell(new Point(x, y)) { Map = this });
+
+                }
+
+            }
+
+        }
+
+        private void LoadMapCellsv5(byte[] fileBytes)
+        {
+
+            //Mir3
             Width = fileBytes[23] << 8 | fileBytes[22];
             Height = fileBytes[25] << 8 | fileBytes[24];
 
@@ -70,19 +358,252 @@ namespace Server.Models
             int offSet = 28 + Width * Height / 4 * 3;
 
             for (int x = 0; x < Width; x++)
+            {
                 for (int y = 0; y < Height; y++)
                 {
                     byte flag = fileBytes[offSet + (x * Height + y) * 14];
 
-                    if ((flag & 0x02) != 2 || (flag & 0x01) != 1) continue;
+                    if ((flag & 0x02) != 2 || (flag & 0x01) != 1)
+                    {
+                        continue;
+                    }
 
                     ValidCells.Add(Cells[x, y] = new Cell(new Point(x, y)) { Map = this });
+
                 }
 
-            OrderedObjects = new HashSet<MapObject>[Width];
-            for (int i = 0; i < OrderedObjects.Length; i++)
-                OrderedObjects[i] = new HashSet<MapObject>();
+            }
+
         }
+
+        private void LoadMapCellsv6(byte[] fileBytes)
+        {
+            //Shanda Mir3
+
+            int offSet = 16;
+            Width = BitConverter.ToInt16(fileBytes, offSet);
+            offSet += 2;
+            Height = BitConverter.ToInt16(fileBytes, offSet);
+
+            offSet = 40;
+
+            Cells = new Cell[Width, Height];
+
+            for (int x = 0; x < Width; x++)
+            {
+                for (int y = 0; y < Height; y++)
+                {
+
+                    byte flag = 0;
+
+                    if ((fileBytes[offSet] & 0x01) != 1)
+                        flag = 2;
+                    else if ((fileBytes[offSet] & 0x02) != 2)
+                        flag = 1;
+
+                    offSet += 20;
+
+                    if (flag == 1 || flag == 2)
+                    {
+                        continue;
+                    }
+
+                    ValidCells.Add(Cells[x, y] = new Cell(new Point(x, y)) { Map = this });
+
+                }
+
+            }
+
+        }
+
+        private void LoadMapCellsv7(byte[] fileBytes)
+        {
+            //3/4 heroes map
+
+            int offSet = 21;
+            Width = BitConverter.ToInt16(fileBytes, offSet);
+            offSet += 4;
+            Height = BitConverter.ToInt16(fileBytes, offSet);
+
+            offSet = 54;
+
+            Cells = new Cell[Width, Height];
+
+            for (int x = 0; x < Width; x++)
+            {
+                for (int y = 0; y < Height; y++)
+                {
+
+                    byte flag = 0;
+
+                    if ((BitConverter.ToInt16(fileBytes, offSet) & 0x8000) != 0)
+                        flag = 2; //Can Fire Over.
+
+                    if ((BitConverter.ToInt16(fileBytes, offSet + 6) & 0x8000) != 0)
+                        flag = 1; //Can't Fire Over.
+
+                    offSet += 15;
+
+                    if (flag == 1 || flag == 2)
+                    {
+                        continue;
+                    }
+
+                    ValidCells.Add(Cells[x, y] = new Cell(new Point(x, y)) { Map = this });
+
+                }
+
+            }
+        }
+
+        private void LoadMapCellsv8(byte[] fileBytes)
+        {
+            //Shanda Mir3 - new (some stuff match with old format)
+
+            int offSet = 16;
+            Width = BitConverter.ToInt16(fileBytes, offSet);
+            offSet += 2;
+            Height = BitConverter.ToInt16(fileBytes, offSet);
+
+            offSet = 40;
+
+            Cells = new Cell[Width, Height];
+
+            for (int x = 0; x < Width; x++)
+            {
+                for (int y = 0; y < Height; y++)
+                {
+
+                    byte flag = 0;
+
+                    if ((fileBytes[offSet] & 0x01) != 1)
+                        flag = 2;
+                    else if ((fileBytes[offSet] & 0x02) != 2)
+                        flag = 1;
+
+                    offSet += 20;
+
+                    if (flag == 1 || flag == 2)
+                    {
+                        continue;
+                    }
+
+                    ValidCells.Add(Cells[x, y] = new Cell(new Point(x, y)) { Map = this });
+
+                }
+
+            }
+
+        }
+
+        private void LoadMapCellsV100(byte[] fileBytes)
+        {
+            //C# custom
+
+            int offSet = 4;
+            if ((fileBytes[0] != 1) || (fileBytes[1] != 0)) return;//only support version 1 atm
+            Width = BitConverter.ToInt16(fileBytes, offSet);
+            offSet += 2;
+            Height = BitConverter.ToInt16(fileBytes, offSet);
+
+            offSet = 8;
+
+            Cells = new Cell[Width, Height];
+
+            for (int x = 0; x < Width; x++)
+            {
+                for (int y = 0; y < Height; y++)
+                {
+
+                    byte flag = 0;
+
+                    offSet += 2;
+                    if ((BitConverter.ToInt32(fileBytes, offSet) & 0x20000000) != 0)
+                        flag = 2; //Can Fire Over.
+
+                    offSet += 10;
+                    if ((BitConverter.ToInt16(fileBytes, offSet) & 0x8000) != 0)
+                        flag = 1; //Can't Fire Over.
+
+                    offSet += 14;
+
+                    if (flag == 1 || flag == 2)
+                    {
+                        continue;
+                    }
+
+                    ValidCells.Add(Cells[x, y] = new Cell(new Point(x, y)) { Map = this });
+
+                }
+
+            }
+        }
+
+        private void LoadMapCellsV150(byte[] fileBytes, string fileName)
+        {
+            //C# woool custom
+
+            int offset = 0;
+            //69 bytes TitleMetaData + XtraData
+            offset += 70;
+            //startOffset jump 4 bytes (int)
+            var startOffset = BitConverter.ToInt32(fileBytes, offset);
+            offset += 4;
+
+            //width 4 bytes (int)
+            Width = BitConverter.ToInt32(fileBytes, offset);
+            offset += 4;
+            //height 4 bytes (int)
+            Height = BitConverter.ToInt32(fileBytes, offset);
+            offset += 4;
+
+            if (Width > 1500 || Height > 1500)
+            {
+                return;
+            }
+
+            Cells = new Cell[Width, Height];
+
+            var MapData = new byte[fileBytes.Length - offset];
+            Array.ConstrainedCopy(fileBytes, offset, MapData, 0, MapData.Length);
+
+
+            var pSize = (Width - 1) * (Height - 1) * 13;
+
+            if (fileBytes.Length - offset < pSize)
+                return;
+
+            offset = 0;
+            //Fill map info
+
+            for (int x = 0; x < Width - 1; x++)
+            {
+                for (int y = 0; y < Height - 1; y++)
+                {
+
+                    byte flag = 0;
+
+                    if (MapData[offset++] == 1)
+                        flag = 1;
+                    else
+                        flag = 0;
+
+                    offset += 12;
+
+                    if (flag == 1 || flag == 2)
+                    {
+                        continue;
+                    }
+
+                    ValidCells.Add(Cells[x, y] = new Cell(new Point(x, y)) { Map = this });
+
+                }
+
+            }
+        }
+
+        #endregion
+
         public void Setup()
         {
             CreateGuards();

@@ -1,15 +1,10 @@
-﻿using Library_Editor;
-using ManagedSquish;
+﻿using ManagedSquish;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 namespace LibraryEditor
@@ -59,6 +54,7 @@ namespace LibraryEditor
 
         private void LoadImageInfo()
         {
+
             _fStream.Seek(2, SeekOrigin.Begin);
             var version = System.Text.Encoding.UTF8.GetString(_bReader.ReadBytes(20)).TrimEnd('\0');
             IsNewVersion = version == "ILIB v2.0-WEMADE";
@@ -75,6 +71,7 @@ namespace LibraryEditor
 
             for (int i = 0; i < _count; i++)
                 _indexList[i] = _bReader.ReadInt32();
+
         }
 
         public void Close()
@@ -123,15 +120,38 @@ namespace LibraryEditor
 
             try
             {
+                //for (int i = 0; i < Images.Length; i++)
+                //{
+                //    WTLImage image = Images[i];
+                //    WTLImage shadowimage = shadowLibrary != null ? shadowLibrary.Images[i] : null;
+
+                //    if (shadowimage != null)
+                //        library.Images[i] = new Mir3Library.Mir3Image(image.Image, shadowimage.Image, image.MaskImage) { OffSetX = image.X, OffSetY = image.Y, ShadowOffSetX = image.ShadowX, ShadowOffSetY = image.ShadowY, ShadowType = image.Shadow };
+                //    else
+                //        library.Images[i] = new Mir3Library.Mir3Image(image.Image, null, image.MaskImage) { OffSetX = image.X, OffSetY = image.Y, ShadowOffSetX = image.ShadowX, ShadowOffSetY = image.ShadowY, ShadowType = image.Shadow };
+
+                //}
+
                 Parallel.For(0, Images.Length, options, i =>
                 {
-                    WTLImage image = Images[i];
-                    WTLImage shadowimage = shadowLibrary != null ? shadowLibrary.Images[i] : null;
+                    try
+                    {
+                        WTLImage image = Images[i];
 
-                    if (shadowimage != null && shadowimage.Length > 0)
-                        library.Images[i] = new Mir3Library.Mir3Image(image.Image, shadowimage.Image, image.MaskImage) { OffSetX = image.X, OffSetY = image.Y, ShadowOffSetX = shadowimage.X, ShadowOffSetY = shadowimage.Y, ShadowType = shadowimage.Shadow };
-                    else
-                        library.Images[i] = new Mir3Library.Mir3Image(image.Image, null, image.MaskImage) { OffSetX = image.X, OffSetY = image.Y, ShadowOffSetX = image.ShadowX, ShadowOffSetY = image.ShadowY, ShadowType = image.Shadow };
+                        if (image != null)
+                        {
+                            WTLImage shadowimage = shadowLibrary != null ? shadowLibrary.Images[i] : null;
+
+                            if (shadowimage != null)
+                                library.Images[i] = new Mir3Library.Mir3Image(image.Image, shadowimage.Image, image.MaskImage) { OffSetX = image.X, OffSetY = image.Y, ShadowOffSetX = image.ShadowX, ShadowOffSetY = image.ShadowY, ShadowType = image.Shadow };
+                            else
+                                library.Images[i] = new Mir3Library.Mir3Image(image.Image, null, image.MaskImage) { OffSetX = image.X, OffSetY = image.Y, ShadowOffSetX = image.ShadowX, ShadowOffSetY = image.ShadowY, ShadowType = image.Shadow };
+                        }
+                    }
+                    catch
+                    {
+                    }
+                    
                 });
             }
             catch (System.Exception)
@@ -140,7 +160,7 @@ namespace LibraryEditor
             }
             finally
             {
-                library.Save(fileName);
+                library.Save(fileName, null, false, false);
             }
 
             // Operation finished.
@@ -150,39 +170,14 @@ namespace LibraryEditor
             //            System.Windows.Forms.MessageBoxIcon.Information,
             //                System.Windows.Forms.MessageBoxDefaultButton.Button1);
         }
-        public void MergeToMLibrary(Mir3Library lib, int newImages)
-        {
-            int offset = lib.Images.Count;
-            for (int i = 0; i < Images.Length; i++)
-                lib.Images.Add(null);
-
-            ParallelOptions options = new ParallelOptions { MaxDegreeOfParallelism = 8 };
-
-            try
-            {
-                Parallel.For(0, Images.Length, options, i =>
-                {
-                    WTLImage image = Images[i];
-                    WTLImage shadowimage = shadowLibrary != null ? shadowLibrary.Images[i] : null;
-
-                    if (shadowimage != null)
-                        lib.Images[i + offset] = new Mir3Library.Mir3Image(image.Image, shadowimage.Image, image.MaskImage) { OffSetX = image.X, OffSetY = image.Y, ShadowOffSetX = image.ShadowX, ShadowOffSetY = image.ShadowY, ShadowType = image.Shadow };
-                    else
-                        lib.Images[i + offset] = new Mir3Library.Mir3Image(image.Image, null, image.MaskImage) { OffSetX = image.X, OffSetY = image.Y, ShadowOffSetX = image.ShadowX, ShadowOffSetY = image.ShadowY, ShadowType = image.Shadow };
-                });
-                lib.AddBlanks(newImages);
-            }
-            catch (System.Exception)
-            {
-                throw;
-            }
-        }
     }
 
     public class WTLImage
     {
-        public readonly short Width, Height, X, Y, ShadowX, ShadowY;
+        public readonly short X, Y, ShadowX, ShadowY;
         public readonly int Length;
+
+        public short Width, Height;
 
         public int DataOffset { get; }
 
@@ -190,8 +185,6 @@ namespace LibraryEditor
 
         public int Index { get; }
         public bool IsNewVersion { get; }
-        public byte ImageTextureType { get; }
-        public byte MaskTextureType { get; }
 
         private byte[] _fBytes;
         public Bitmap Image;
@@ -201,6 +194,11 @@ namespace LibraryEditor
         public int MaskLength;
         private byte[] _MaskfBytes;
         public Bitmap MaskImage;
+        private byte m1;
+        private byte LibType;
+        private byte ma1;
+        private byte ma2;
+
 
         public WTLImage(int index, bool isNewVersion)
         {
@@ -223,15 +221,27 @@ namespace LibraryEditor
 
             if (IsNewVersion)
             {
-                var imageU1 = bReader.ReadByte();
-                ImageTextureType = bReader.ReadByte();
-                var maskU1 = bReader.ReadByte();
-                MaskTextureType = bReader.ReadByte();
+                m1 = bReader.ReadByte(); // something related to the main image
+                LibType = bReader.ReadByte();
 
-                HasMask = MaskTextureType > 0;
+                ma1 = bReader.ReadByte(); // something related to the mask image
+                ma2 = bReader.ReadByte();
+
+                HasMask = ma1 > 0;
                 Length = bReader.ReadInt32();
                 if (Length % 4 > 0) Length += 4 - (Length % 4);
                 DataOffset = (int)bReader.BaseStream.Position;
+
+                //size fixer
+                short tWidth = 2;
+
+                while (tWidth < Width)
+                    tWidth *= 2;
+
+                //raw decoding
+                Width = (short)(tWidth + (4 - tWidth % 4) % 4);
+                Height = (short)(Height + (4 - Height % 4) % 4);
+
             }
             else
             {
@@ -243,11 +253,14 @@ namespace LibraryEditor
 
         public unsafe void CreateTexture(BinaryReader bReader)
         {
-            Image = ReadImage(bReader, Length, Width, Height, ImageTextureType);
+            Image = ReadImage(bReader, Length, Width, Height);
             if (HasMask)
             {
                 if (IsNewVersion)
                 {
+                    //    var buff = bReader.ReadBytes(10);
+                    //    var str = BitConverter.ToString(buff);
+                    //    bReader.BaseStream.Seek(bReader.BaseStream.Position - 10, SeekOrigin.Begin);
                     MaskWidth = Width;
                     MaskHeight = Height;
                     MaskX = X;
@@ -266,7 +279,7 @@ namespace LibraryEditor
                     bReader.ReadByte(); //mask shadow
                 }
 
-                MaskImage = ReadImage(bReader, MaskLength, MaskWidth, MaskHeight, MaskTextureType);
+                MaskImage = ReadImage(bReader, MaskLength, MaskWidth, MaskHeight);
             }
         }
 
@@ -365,59 +378,33 @@ namespace LibraryEditor
             return output;
         }
 
-
-        private unsafe Bitmap DecompressV2Texture(BinaryReader bReader, int imageLength, short outputWidth, short outputHeight, byte textureType)
+        private unsafe Bitmap DecompressV2Texture(BinaryReader bReader, int imageLength, short outputWidth, short outputHeight)
         {
             var buffer = bReader.ReadBytes(imageLength);
 
-            int w = Width + (4 - Width % 4) % 4;
-            int a = 1;
-            while (true)
-            {
-                a *= 2;
-                if (a >= w)
-                {
-                    w = a;
-                    break;
-                }
-            }
-            int h = Height + (4 - Height % 4) % 4;
-            int e = w * h / 2;
-
-            SquishFlags type;
-            switch (textureType)
-            {
-                case 0:
-                case 1:
-                    type = SquishFlags.Dxt1;
-                    break;
-                case 3:
-                    type = SquishFlags.Dxt3;
-                    break;
-                case 5:
-                    type = SquishFlags.Dxt5;
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
-
-
             var decompressedBuffer = Ionic.Zlib.DeflateStream.UncompressBuffer(buffer);
-
-            var bitmap = new Bitmap(w, h);
+            
+            List<byte> countList = new List<byte>();
+            
+            var bitmap = new Bitmap(outputWidth, outputHeight);
 
             BitmapData data = bitmap.LockBits(
-                new Rectangle(0, 0, w, h),
+                new Rectangle(0, 0, outputWidth, outputHeight),
                 ImageLockMode.WriteOnly,
-                PixelFormat.Format32bppRgb
+                PixelFormat.Format32bppArgb
             );
 
+            var endType = SquishFlags.Dxt1;
+
+            if (LibType == 5)
+                endType = SquishFlags.Dxt5;
+
             fixed (byte* source = decompressedBuffer)
-                Squish.DecompressImage(data.Scan0, w, h, (IntPtr)source, type);
+                Squish.DecompressImage(data.Scan0, outputWidth, outputHeight, (IntPtr)source, endType);
 
             byte* dest = (byte*)data.Scan0;
 
-            for (int i = 0; i < w * h * 4; i += 4)
+            for (int i = 0; i < outputHeight * outputWidth * 4; i += 4)
             {
                 //Reverse Red/Blue
                 byte b = dest[i];
@@ -426,18 +413,14 @@ namespace LibraryEditor
             }
 
             bitmap.UnlockBits(data);
-
-            Rectangle cloneRect = new Rectangle(0, 0, outputWidth, outputHeight);
-            PixelFormat format = bitmap.PixelFormat;
-            Bitmap cloneBitmap = bitmap.Clone(cloneRect, format);
-
-            return cloneBitmap;
+            
+            return bitmap;
         }
 
-        public unsafe Bitmap ReadImage(BinaryReader bReader, int imageLength, short outputWidth, short outputHeight, byte textureType)
+        public unsafe Bitmap ReadImage(BinaryReader bReader, int imageLength, short outputWidth, short outputHeight)
         {
             return IsNewVersion
-                ? DecompressV2Texture(bReader, imageLength, outputWidth, outputHeight, textureType)
+                ? DecompressV2Texture(bReader, imageLength, outputWidth, outputHeight)
                 : DecompressV1Texture(bReader, imageLength, outputWidth, outputHeight);
         }
 
@@ -515,5 +498,7 @@ namespace LibraryEditor
             //*/
             return value;
         }
+
     }
+
 }

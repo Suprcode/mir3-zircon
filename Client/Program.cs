@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Windows.Forms;
 using Client.Controls;
 using Client.Envir;
+using Client.Models;
 using Client.Scenes;
 using Library;
 using Sentry;
@@ -49,6 +50,8 @@ namespace Client
 
                 CEnvir.LibraryList[pair.Key] = new MirLibrary(@".\" + pair.Value);
             }
+
+            CrystalMaps.InitMaps();
 
             CEnvir.Target = new TargetForm();
             DXManager.Create();

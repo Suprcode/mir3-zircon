@@ -2190,10 +2190,10 @@ namespace Client.Models
             switch (Image)
             {
                 case MonsterImage.ChestnutTree:
-                    y -= MapControl.CellHeight;
+                    y -= GameScene.Game.MapControl.CellHeight;
                     break;
                 case MonsterImage.NewMob10:
-                    y -= MapControl.CellHeight * 4;
+                    y -= GameScene.Game.MapControl.CellHeight * 4;
                     break;
             }
 
@@ -2321,7 +2321,7 @@ namespace Client.Models
             switch (Image)
             {
                 case MonsterImage.ChestnutTree:
-                    y -= MapControl.CellHeight;
+                    y -= GameScene.Game.MapControl.CellHeight;
                     break;
                     case MonsterImage.JinamStoneGate:
                     return;

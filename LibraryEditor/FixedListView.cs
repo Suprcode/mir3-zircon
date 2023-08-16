@@ -3,7 +3,7 @@ using System.Windows.Forms;
 
 namespace LibraryEditor
 {
-    internal class FixedListView : ListView
+    public class FixedListView : ListView
     {
         private int _lastItemIndexClicked1 = -1;
         private int _lastItemIndexClicked2 = -1;
